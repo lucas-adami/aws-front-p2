@@ -84,12 +84,12 @@ jobs:
 
           if [ "$CURRENT_VERSION" == "$NEW_VERSION" ]; then
             echo "should_deploy=false" >> $GITHUB_OUTPUT
-            echo "new_version=$CURRENT_VERSION" >> $GITHUB_ENV
             echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "new_version=$CURRENT_VERSION" >> $GITHUB_ENV
           else
             echo "should_deploy=true" >> $GITHUB_OUTPUT
-            echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
             echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+            echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
           fi
 
       - name: Set up Docker Buildx
@@ -107,13 +107,18 @@ jobs:
           REPO_NAME="${{ github.repository }}"
           REPO_NAME="${REPO_NAME#*/}"
           REPO_NAME=$(echo "$REPO_NAME" | xargs)  # trim espaços
-          echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
-          echo "::set-output name=repo_name::$REPO_NAME"
+          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
           echo "Repo name definido como: '$REPO_NAME'"
 
-      - name: Debugar variável repo_name
+      - name: Debugar variáveis antes do build
         run: |
-          echo "Repo name no debug: '${{ steps.define_repo_name.outputs.repo_name }}'"
+          echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME"
+          echo "REPO_NAME=$REPO_NAME"
+          echo "NEW_VERSION=$NEW_VERSION"
+        env:
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+          REPO_NAME: ${{ steps.define_repo_name.outputs.repo_name }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
       - name: Inserir versão no App.js
         if: steps.version.outputs.should_deploy == 'true'
