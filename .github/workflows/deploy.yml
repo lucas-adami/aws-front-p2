@@ -106,8 +106,11 @@ jobs:
         run: |
           REPO_NAME="${{ github.repository }}"
           REPO_NAME="${REPO_NAME#*/}"
+          # Remover espaços extras se houver
+          REPO_NAME=$(echo "$REPO_NAME" | xargs)
           echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
+          echo "Repo name definido como: $REPO_NAME"
 
       - name: Inserir versão no App.js
         if: steps.version.outputs.should_deploy == 'true'
@@ -126,18 +129,24 @@ jobs:
         env:
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
           REPO_NAME: ${{ steps.define_repo_name.outputs.repo_name }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/$REPO_NAME:$NEW_VERSION .
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/$REPO_NAME:$NEW_VERSION ${{ secrets.DOCKERHUB_USERNAME }}/$REPO_NAME:latest
+          echo "Construindo imagem: $DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION"
+          docker buildx build -t $DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION --load .
+
+          echo "Criando tag latest"
+          docker tag $DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION $DOCKERHUB_USERNAME/$REPO_NAME:latest
 
       - name: Push da imagem
         if: steps.version.outputs.should_deploy == 'true'
         env:
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
           REPO_NAME: ${{ steps.define_repo_name.outputs.repo_name }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/$REPO_NAME:$NEW_VERSION
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/$REPO_NAME:latest
+          echo "Fazendo push da imagem: $DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION"
+          docker push $DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION
+          docker push $DOCKERHUB_USERNAME/$REPO_NAME:latest
 
       - name: Atualizar versão no package.json
         if: steps.version.outputs.should_deploy == 'true'
