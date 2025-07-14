@@ -106,11 +106,14 @@ jobs:
         run: |
           REPO_NAME="${{ github.repository }}"
           REPO_NAME="${REPO_NAME#*/}"
-          # Remover espaços extras se houver
-          REPO_NAME=$(echo "$REPO_NAME" | xargs)
+          REPO_NAME=$(echo "$REPO_NAME" | xargs)  # trim espaços
           echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
-          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
-          echo "Repo name definido como: $REPO_NAME"
+          echo "::set-output name=repo_name::$REPO_NAME"
+          echo "Repo name definido como: '$REPO_NAME'"
+
+      - name: Debugar variável repo_name
+        run: |
+          echo "Repo name no debug: '${{ steps.define_repo_name.outputs.repo_name }}'"
 
       - name: Inserir versão no App.js
         if: steps.version.outputs.should_deploy == 'true'
@@ -133,7 +136,6 @@ jobs:
         run: |
           echo "Construindo imagem: $DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION"
           docker buildx build -t $DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION --load .
-
           echo "Criando tag latest"
           docker tag $DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION $DOCKERHUB_USERNAME/$REPO_NAME:latest
 
