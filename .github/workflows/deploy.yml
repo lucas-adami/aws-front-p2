@@ -106,19 +106,28 @@ jobs:
         run: |
           REPO_NAME="${{ github.repository }}"
           REPO_NAME="${REPO_NAME#*/}"
-          REPO_NAME=$(echo "$REPO_NAME" | xargs)  # trim espaços
+          REPO_NAME="$(echo "$REPO_NAME" | tr -d '\n\r' | xargs)"  # Remove quebras e espaços
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
           echo "Repo name definido como: '$REPO_NAME'"
 
-      - name: Debugar variáveis antes do build
-        run: |
-          echo "DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME"
-          echo "REPO_NAME=$REPO_NAME"
-          echo "NEW_VERSION=$NEW_VERSION"
+      - name: Debug variáveis detalhado antes do build
         env:
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
           REPO_NAME: ${{ steps.define_repo_name.outputs.repo_name }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          # Limpar espaços e quebras
+          DOCKERHUB_USERNAME=$(echo "$DOCKERHUB_USERNAME" | tr -d '\n\r' | xargs)
+          REPO_NAME=$(echo "$REPO_NAME" | tr -d '\n\r' | xargs)
+          NEW_VERSION=$(echo "$NEW_VERSION" | tr -d '\n\r' | xargs)
+
+          echo "DOCKERHUB_USERNAME='$DOCKERHUB_USERNAME'"
+          echo "REPO_NAME='$REPO_NAME'"
+          echo "NEW_VERSION='$NEW_VERSION'"
+
+          echo "DOCKERHUB_USERNAME hex:" && echo -n "$DOCKERHUB_USERNAME" | xxd
+          echo "REPO_NAME hex:" && echo -n "$REPO_NAME" | xxd
+          echo "NEW_VERSION hex:" && echo -n "$NEW_VERSION" | xxd
 
       - name: Inserir versão no App.js
         if: steps.version.outputs.should_deploy == 'true'
@@ -139,10 +148,16 @@ jobs:
           REPO_NAME: ${{ steps.define_repo_name.outputs.repo_name }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
-          echo "Construindo imagem: $DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION"
-          docker buildx build -t $DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION --load .
-          echo "Criando tag latest"
-          docker tag $DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION $DOCKERHUB_USERNAME/$REPO_NAME:latest
+          # Limpar espaços e quebras antes de usar
+          DOCKERHUB_USERNAME=$(echo "$DOCKERHUB_USERNAME" | tr -d '\n\r' | xargs)
+          REPO_NAME=$(echo "$REPO_NAME" | tr -d '\n\r' | xargs)
+          NEW_VERSION=$(echo "$NEW_VERSION" | tr -d '\n\r' | xargs)
+
+          FULL_TAG="$DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION"
+
+          echo "Construindo imagem: '$FULL_TAG'"
+          docker buildx build -t "$FULL_TAG" --load .
+          docker tag "$FULL_TAG" "$DOCKERHUB_USERNAME/$REPO_NAME:latest"
 
       - name: Push da imagem
         if: steps.version.outputs.should_deploy == 'true'
