@@ -124,10 +124,6 @@ jobs:
           echo "REPO_NAME='$REPO_NAME'"
           echo "NEW_VERSION='$NEW_VERSION'"
 
-          echo "DOCKERHUB_USERNAME hex:" && echo -n "$DOCKERHUB_USERNAME" | xxd
-          echo "REPO_NAME hex:" && echo -n "$REPO_NAME" | xxd
-          echo "NEW_VERSION hex:" && echo -n "$NEW_VERSION" | xxd
-
       - name: Inserir versão no App.js
         if: steps.version.outputs.should_deploy == 'true'
         env:
@@ -191,7 +187,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
-          git add package.json
+          git add package.json src/App.js
           git commit -m "chore(release): version $NEW_VERSION"
           git tag v$NEW_VERSION
           git push origin main --tags
