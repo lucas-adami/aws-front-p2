@@ -50,6 +50,11 @@ function App() {
           <S3Uploader />
         </Col>
       </Row>
+  <Row className="mt-3">
+    <Col>
+      <p style={{ textAlign: "center", fontStyle: "italic" }}>Versão: 0.1.0</p>
+    </Col>
+  </Row>
     </Container>
   );
 }
