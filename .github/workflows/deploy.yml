@@ -106,7 +106,7 @@ jobs:
         run: |
           REPO_NAME="${{ github.repository }}"
           REPO_NAME="${REPO_NAME#*/}"
-          REPO_NAME="$(echo "$REPO_NAME" | tr -d '\n\r' | xargs)"  # Remove quebras e espaços
+          REPO_NAME="$(echo "$REPO_NAME" | tr -d '\n\r' | xargs)"
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
           echo "Repo name definido como: '$REPO_NAME'"
 
@@ -116,7 +116,6 @@ jobs:
           REPO_NAME: ${{ steps.define_repo_name.outputs.repo_name }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
-          # Limpar espaços e quebras
           DOCKERHUB_USERNAME=$(echo "$DOCKERHUB_USERNAME" | tr -d '\n\r' | xargs)
           REPO_NAME=$(echo "$REPO_NAME" | tr -d '\n\r' | xargs)
           NEW_VERSION=$(echo "$NEW_VERSION" | tr -d '\n\r' | xargs)
@@ -148,7 +147,6 @@ jobs:
           REPO_NAME: ${{ steps.define_repo_name.outputs.repo_name }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
-          # Limpar espaços e quebras antes de usar
           DOCKERHUB_USERNAME=$(echo "$DOCKERHUB_USERNAME" | tr -d '\n\r' | xargs)
           REPO_NAME=$(echo "$REPO_NAME" | tr -d '\n\r' | xargs)
           NEW_VERSION=$(echo "$NEW_VERSION" | tr -d '\n\r' | xargs)
@@ -166,16 +164,24 @@ jobs:
           REPO_NAME: ${{ steps.define_repo_name.outputs.repo_name }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
+          DOCKERHUB_USERNAME=$(echo "$DOCKERHUB_USERNAME" | tr -d '\n\r' | xargs)
+          REPO_NAME=$(echo "$REPO_NAME" | tr -d '\n\r' | xargs)
+          NEW_VERSION=$(echo "$NEW_VERSION" | tr -d '\n\r' | xargs)
+
           echo "Fazendo push da imagem: $DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION"
-          docker push $DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION
-          docker push $DOCKERHUB_USERNAME/$REPO_NAME:latest
+          docker push "$DOCKERHUB_USERNAME/$REPO_NAME:$NEW_VERSION"
+          docker push "$DOCKERHUB_USERNAME/$REPO_NAME:latest"
+
+      - name: Mostrar versão atual no package.json
+        if: steps.version.outputs.should_deploy == 'true'
+        run: cat package.json | grep version
 
       - name: Atualizar versão no package.json
         if: steps.version.outputs.should_deploy == 'true'
         env:
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
         run: |
-          npm version $NEW_VERSION --no-git-tag-version
+          npm version $NEW_VERSION --no-git-tag-version || true
 
       - name: Commit e push
         if: steps.version.outputs.should_deploy == 'true'
